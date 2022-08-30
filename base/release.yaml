@@ -1,0 +1,128 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: nextcloud
+  namespace: {{index . "namespace"}}
+spec:
+  serviceAccountName: {{index . "serviceAccountName"}}
+  releaseName: nextcloud
+  chart:
+    spec:
+      chart: nextcloud
+      version: "3.0.3"
+      sourceRef:
+        kind: HelmRepository
+        name: nextcloud
+  interval: 5m
+  install:
+    remediation:
+      retries: -1
+  uninstall:
+    timeout: 5m
+  test:
+    enable: false
+  values:
+    ingress:
+      {{- if index . "isNginxInstalled" }}
+      enabled: true
+      annotations:
+        kubernetes.io/ingress.class: nginx
+        nginx.ingress.kubernetes.io/proxy-body-size: 100m
+      {{- else }}
+      enable: false
+      {{- end }}
+      {{- if and (index . "isNginxInstalled") (index . "isCertManagerInstalled") }}
+      tls:
+        - secretName: nextcloud-cert
+          hosts:
+            - nextcloud.{{ index . "domain"}}
+      {{- end }}
+    nextcloud:
+      host: nextcloud.{{ index . "domain"}}
+      existingSecret:
+        enabled: true
+        secretName: nextcloud-admin
+        usernameKey: username
+        passwordKey: password
+      {{- if index . "isPostgresqlInstalled" }}
+      extraEnv:
+      {{- end }}
+      {{- if index . "isPostgresqlInstalled" }}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secret
+              key: postgres-password
+      {{- end }}
+      {{- if index . "isSmtpServerInstalled" }}
+        - name: SMTP_HOST
+          valueFrom:
+            secretKeyRef:
+              name: smtp-secret
+              key: host
+        - name: MAIL_DOMAIN
+          valueFrom:
+            secretKeyRef:
+              name: smtp-secret
+              key: domain
+        - name: MAIL_FROM_ADDRESS
+          value: noreply
+        - name: SMTP_PORT
+          valueFrom:
+            secretKeyRef:
+              name: smtp-secret
+              key: port
+        - name: SMTP_SECURE
+          valueFrom:
+            secretKeyRef:
+              name: smtp-secret
+              key: secure
+        - name: SMTP_NAME
+          valueFrom:
+            secretKeyRef:
+              name: smtp-secret
+              key: username
+        - name: SMTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: smtp-secret
+              key: password
+      {{- end }}
+    persistence:
+      enabled: true
+    {{- if index . "isPostgresqlInstalled" }}
+    internalDatabase:
+      enabled: false
+    externalDatabase:
+      enabled: true
+      type: postgresql
+      host: {{ index . "postgresqlName"}}.{{ index . "postgresqlNamespace"}}.svc.cluster.local:5432
+      user: postgres
+      database: nextcloud
+      password: "xxx"
+    {{- end }}
+  {{- if index . "isPostgresqlInstalled" }}
+  postRenderers:
+    - kustomize:
+        patchesStrategicMerge:
+          - kind: Deployment
+            apiVersion: apps/v1
+            metadata:
+              name: nextcloud
+            spec:
+              template:
+                spec:
+                  initContainers:
+                    - name: "initdb"
+                      image: "docker.io/bitnami/postgresql:11.3.0"
+                      command: ["/bin/bash", "-c"]
+                      args: ['echo $SQL > /tmp/init.sql; psql -f /tmp/init.sql --host {{ index . "postgresqlName"}}.{{ index . "postgresqlNamespace"}} -U postgres']
+                      env:
+                        - name: PGPASSWORD
+                          valueFrom:
+                            secretKeyRef:
+                              name: postgresql-secret
+                              key: postgres-password
+                        - name: SQL
+                          value: "select 'create database nextcloud' where not exists (select from pg_database where datname = 'nextcloud')\\gexec"
+  {{- end}}

@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nextcloud-cert
+  namespace: {{index . "namespace"}}
+spec:
+  dnsNames:
+    - nextcloud.{{ index . "domain"}}
+  secretName: nextcloud-cert
+  issuerRef:
+    name: cluster-issuer
+    kind: ClusterIssuer
