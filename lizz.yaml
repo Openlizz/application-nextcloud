@@ -61,8 +61,6 @@ values:
       numSymbols: 0
       noUpper: false
       allowRepeat: false
-dependencies:
-  - {{ index . "isDomainInstalled" }}
 dependsOn:
   {{- if index . "isNginxInstalled" }}
   - name: {{index . "nginxName"}}

@@ -23,7 +23,7 @@ spec:
     enable: false
   values:
     ingress:
-      {{- if index . "isNginxInstalled" }}
+      {{- if and (index . "isNginxInstalled") (index . "isDomainInstalled") }}
       enabled: true
       annotations:
         kubernetes.io/ingress.class: nginx
@@ -31,14 +31,16 @@ spec:
       {{- else }}
       enable: false
       {{- end }}
-      {{- if and (index . "isNginxInstalled") (index . "isCertManagerInstalled") }}
+      {{- if and (index . "isNginxInstalled") (index . "isDomainInstalled") (index . "isCertManagerInstalled") }}
       tls:
         - secretName: nextcloud-cert
           hosts:
             - nextcloud.{{ index . "domain"}}
       {{- end }}
     nextcloud:
+      {{- if index . "isDomainInstalled" }}
       host: nextcloud.{{ index . "domain"}}
+      {{- end }}
       existingSecret:
         enabled: true
         secretName: nextcloud-admin
