@@ -1,8 +1,8 @@
-<div styles="background: #0082c9; width: 100%; height: 150px; display: flex; justify-content: center; align-items: center;">
-    <img src="./assets/logo.png" alt="Nextcloud Logo">
-</div>
+<p align="center">
+  <img src="./assets/logo.png" alt="Nextcloud Logo">
+</p>
 
-<h1 align="center">Nextcloud</h1>
+<h1 align="center">Lizz compatible Nextcloud application</h1>
 
 Lizz compatible application to add the [Nextcloud application](https://nextcloud.com/) to a Lizz managed Kubernetes cluster.
 
