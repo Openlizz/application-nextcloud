@@ -92,6 +92,7 @@ spec:
       {{- end }}
     persistence:
       enabled: true
+      size: {{ or (index . "size") "8Gi" }}
     {{- if index . "isPostgresqlInstalled" }}
     internalDatabase:
       enabled: false
