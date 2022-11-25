@@ -46,7 +46,7 @@ spec:
         secretName: nextcloud-admin
         usernameKey: username
         passwordKey: password
-      {{- if index . "isPostgresqlInstalled" }}
+      {{- if or (index . "isPostgresqlInstalled") (index . "isRedisInstalled") (index . "isSmtpServerInstalled") }}
       extraEnv:
       {{- end }}
       {{- if index . "isPostgresqlInstalled" }}
@@ -55,6 +55,17 @@ spec:
             secretKeyRef:
               name: postgresql-secret
               key: postgres-password
+      {{- end }}
+      {{- if index . "isRedisInstalled" }}
+        - name: REDIS_HOST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-password-secret
+              key: redis-password
+        - name: REDIS_HOST
+          value: {{ index . "postgresqlName"}}-master.{{ index . "postgresqlNamespace"}}
+        - name: REDIS_HOST_PORT
+          value: "6379"
       {{- end }}
       {{- if index . "isSmtpServerInstalled" }}
         - name: SMTP_HOST
@@ -90,9 +101,51 @@ spec:
               name: smtp-secret
               key: password
       {{- end }}
+      configs:
+        custom.config.php: |-
+          <?php
+          $CONFIG = array (
+            'overwriteprotocol' => 'https',
+            'overwrite.cli.url' => 'https://nextcloud.{{ index . "domain"}}',
+            'filelocking.enabled' => 'true',
+            'loglevel' => '2',
+            'enable_previews' => true,
+            'trusted_domains' =>
+              [
+                'nextcloud',
+                'nextcloud.{{ index . "domain"}}'
+              ]
+          );
+      {{- if (index . "isRedisInstalled") }}
+        redis.config.php: |-
+          <?php
+          $CONFIG = array (
+            'memcache.local' => '\\OC\\Memcache\\Redis',
+            'memcache.distributed' => '\OC\Memcache\Redis',
+            'memcache.locking' => '\OC\Memcache\Redis',
+            'redis' => array(
+              'host' => getenv('REDIS_HOST'),
+              'port' => getenv('REDIS_HOST_PORT') ?: 6379,
+              'password' => getenv('REDIS_HOST_PASSWORD')
+            )
+          );
+      defaultConfigs:
+        redis.config.php: false
+      {{- end }}
     persistence:
       enabled: true
-      size: {{ or (index . "size") "8Gi" }}
+      size: 4Gi
+      nextcloudData:
+        enabled: true
+        size: {{ or (index . "size") "8Gi" }}
+    cronjob:
+      annotations: {}
+      curlInsecure: false
+      enabled: true
+      failedJobsHistoryLimit: 5
+      image: {}
+      schedule: "*/5 * * * *"
+      successfulJobsHistoryLimit: 2
     {{- if index . "isPostgresqlInstalled" }}
     internalDatabase:
       enabled: false
@@ -104,8 +157,20 @@ spec:
       database: nextcloud
       password: "xxx"
     {{- end }}
-  {{- if index . "isPostgresqlInstalled" }}
   postRenderers:
+    - kustomize:
+        patchesJson6902:
+          - target:
+              kind: Deployment
+              name: nextcloud
+            patch:
+              - op: replace
+                path: "/spec/template/spec/containers/1/resources/requests/cpu"
+                value: "100m"
+              - op: replace
+                path: "/spec/template/spec/containers/1/resources/requests/memory"
+                value: "128Mi"
+    {{- if index . "isPostgresqlInstalled" }}
     - kustomize:
         patchesStrategicMerge:
           - kind: Deployment
@@ -128,4 +193,4 @@ spec:
                               key: postgres-password
                         - name: SQL
                           value: "select 'create database nextcloud' where not exists (select from pg_database where datname = 'nextcloud')\\gexec"
-  {{- end}}
+    {{- end}}

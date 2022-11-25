@@ -8,6 +8,9 @@ values:
     - name: isPostgresqlInstalled
       repository: github.com/openlizz/application-postgresql
     - name: isClusterIssuerInstalled
+    - name: isRedisInstalled
+      repository: github.com/openlizz/application-redis
+    - name: isClusterIssuerInstalled
       repository: github.com/openlizz/application-cluster-issuer
     - name: isSmtpServerInstalled
       repository: github.com/openlizz/application-smtp-server
@@ -30,6 +33,10 @@ values:
       template: '{{ range .Applications }}{{ if eq .Configuration.Repository "github.com/openlizz/application-postgresql" }}{{.Configuration.Name}}{{ end }}{{ end }}'
     - name: postgresqlNamespace
       template: '{{ range .Applications }}{{ if eq .Configuration.Repository "github.com/openlizz/application-postgresql" }}{{.Configuration.Namespace}}{{ end }}{{ end }}'
+    - name: redisName
+      template: '{{ range .Applications }}{{ if eq .Configuration.Repository "github.com/openlizz/application-redis" }}{{.Configuration.Name}}{{ end }}{{ end }}'
+    - name: redisNamespace
+      template: '{{ range .Applications }}{{ if eq .Configuration.Repository "github.com/openlizz/application-redis" }}{{.Configuration.Namespace}}{{ end }}{{ end }}'
     - name: smtpServerName
       template: '{{ range .Applications }}{{ if eq .Configuration.Repository "github.com/openlizz/application-smtp-server" }}{{.Configuration.Name}}{{ end }}{{ end }}'
     - name: smtpServerNamespace
@@ -48,6 +55,10 @@ values:
       originPath: base/secret.yaml
       kustomizationPath: base/kustomization.yaml
       repository: github.com/openlizz/application-postgresql
+    - destinationPath: base/redis_secret.yaml
+      originPath: base/secret.yaml
+      kustomizationPath: base/kustomization.yaml
+      repository: github.com/openlizz/application-redis
     - destinationPath: base/smtp_server_secret.yaml
       originPath: base/secret.yaml
       kustomizationPath: base/kustomization.yaml
@@ -79,6 +90,10 @@ dependsOn:
   {{- if index . "isPostgresqlInstalled" }}
   - name: {{index . "postgresqlName"}}
     namespace: {{index . "postgresqlNamespace"}}
+  {{- end }}
+  {{- if index . "isRedisInstalled" }}
+  - name: {{index . "redisName"}}
+    namespace: {{index . "redisNamespace"}}
   {{- end }}
   {{- if index . "isSmtpServerInstalled" }}
   - name: {{index . "smtpServerName"}}
