@@ -7,7 +7,6 @@ values:
       repository: github.com/openlizz/application-cert-manager
     - name: isPostgresqlInstalled
       repository: github.com/openlizz/application-postgresql
-    - name: isClusterIssuerInstalled
     - name: isRedisInstalled
       repository: github.com/openlizz/application-redis
     - name: isClusterIssuerInstalled
