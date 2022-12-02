@@ -63,7 +63,7 @@ spec:
               name: redis-password-secret
               key: redis-password
         - name: REDIS_HOST
-          value: {{ index . "postgresqlName"}}-master.{{ index . "postgresqlNamespace"}}
+          value: {{ index . "redisName"}}-master.{{ index . "redisNamespace"}}
         - name: REDIS_HOST_PORT
           value: "6379"
       {{- end }}
