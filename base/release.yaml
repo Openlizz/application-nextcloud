@@ -182,7 +182,7 @@ spec:
                 spec:
                   initContainers:
                     - name: "initdb"
-                      image: "docker.io/bitnami/postgresql:11.3.0"
+                      image: "docker.io/postgres:15.1"
                       command: ["/bin/bash", "-c"]
                       args: ['echo $SQL > /tmp/init.sql; psql -f /tmp/init.sql --host {{ index . "postgresqlName"}}.{{ index . "postgresqlNamespace"}} -U postgres']
                       env:
